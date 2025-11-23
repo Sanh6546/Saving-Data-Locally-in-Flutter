@@ -1,36 +1,25 @@
-import 'package:flutter/material.dart';
+import 'dart:io';
+import 'package:drift/drift.dart';
+import 'package:drift/native.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
-class InMemoryCounter extends StatefulWidget {
-  const InMemoryCounter({super.key});
+enum DatabaseMode { memory, persistent }
 
-  @override
-  State<InMemoryCounter> createState() => _InMemoryCounterState();
+DatabaseConnection connect({DatabaseMode mode = DatabaseMode.persistent}) {
+  if (mode == DatabaseMode.memory) {
+    // Dùng memory: dữ liệu biến mất khi tắt app
+    return DatabaseConnection(NativeDatabase.memory());
+  } else {
+    // Dùng persistent: dữ liệu lưu vào file
+    return DatabaseConnection(_openFileDatabase());
+  }
 }
 
-class _InMemoryCounterState extends State<InMemoryCounter> {
-  int _counter = 0;
-
-  void _increment() {
-    setState(() => _counter++);
-  }
-
-  void _reset() {
-    setState(() => _counter = 0);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text('Counter (in-memory): $_counter', style: const TextStyle(fontSize: 24)),
-          const SizedBox(height: 20),
-          ElevatedButton(onPressed: _increment, child: const Text('Increment')),
-          const SizedBox(height: 10),
-          ElevatedButton(onPressed: _reset, child: const Text('Reset')),
-        ],
-      ),
-    );
-  }
+LazyDatabase _openFileDatabase() {
+  return LazyDatabase(() async {
+    final dbFolder = await getApplicationDocumentsDirectory();
+    final file = File(p.join(dbFolder.path, 'recipe_demo.sqlite'));
+    return NativeDatabase(file);
+  });
 }
